@@ -1,6 +1,42 @@
-= tailfeather
+= Tailfeather
 
-Description goes here.
+Remotely watch log files in a web front-end via WebSockets.
+
+Tailfeather is made up of two server components. A small web app that serves a simple page for remotely watching log files, and a simple WebSocket server that watches the log files and streams it to clients that have loaded web page. The client-side uses WebSockets, and as such, is only currently supported on browsers that support WebSockets natively (e.g.: Google Chrome).
+
+== Coming Soon
+
+This project is pretty bare-bones. Below is a list of features that I intend to add, time permitting. Contributions welcome.
+
+=== tailfeather
+* Create a main entry point script that can start and stop both the stream server and the app server, both running in daemon modes.
+* Should take a param for the base port.
+* Should take a param for the log dir.
+* Nice to have: reads configs from a config file.
+
+=== tailfeather-stream-server:
+* Ability to configure ports via the command line.
+* Support for verbose/quiet modes.
+* Some kind of security model.
+* Support for daemon mode.
+* Write to a log file (at least in daemon mode).
+* Launched from a central helper script that launches both the stream server and the app server.
+* Make it support globs, and reloading if a file gets renamed/truncated/etc (e.g.: via a logrotate).
+* Make it read passwords from a passwd file, probably want to make client side crypt it.
+* Add support for HTTPS.
+* Implement cross-domain-policy stuff.
+
+* Better error handling.
+
+=== tailfeather-app-server:
+* Fix the button state with auth/connection errors, and connection drop.
+* Make new lines automatically scroll the window to the bottom.
+* Launched from a central helper script that launches both the stream server and the app server.
+* Make the GUI a little nicer and show the name(s) of the file(s) being tailed.
+* Floating button bar at the bottom.
+* Provide tabs or some kind of selection where the user can choose what log files they want to see, or maybe let them opt to see them interleaved into the same stream.
+* Better error handling.
+* Add client-side support for alternative methods using something like socket.io or web-sockets-js.
 
 == Note on Patches/Pull Requests
  

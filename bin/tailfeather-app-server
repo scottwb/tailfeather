@@ -1,0 +1,23 @@
+#!/usr/bin/env ruby
+require 'rubygems'
+require 'sinatra'
+require 'haml'
+
+set :haml, {:format => :html5}
+set :sass, {:full_exception => true}
+
+helpers do
+  def server_name;  "test.strings.com";                    end
+  def server_port;  8200;                                  end
+  def stream_port;  8201;                                  end
+  def stream_url;   "ws://#{server_name}:#{stream_port}";  end
+end
+
+get '/stylesheet.css' do
+  content_type 'text/css', :charset => 'utf-8'
+  sass :stylesheet
+end
+
+get '/' do
+  haml :index
+end

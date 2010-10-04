@@ -1,0 +1,184 @@
+#!/usr/bin/env ruby
+
+# == Synopsis
+#
+# tailfeather-stream-server: Server that streams one or more log files to
+#                            multiple clients over WebSockets.
+#
+# This program runs a server process that listens for WebSocket connections
+# and streams all additions to a set of watched log files to all connected
+# clients.
+#
+# == Usage
+#
+# tailfeather-stream-server <logfile1> [<logfile>2...<logfileN>] [OPTIONS]
+#
+# -h, --help:
+#   Displays this message.
+#
+# --host host:
+#   Specifies the host to listen on Defaults to 0.0.0.0 (any).
+#
+# --port port:
+#   Specifies the port number to listen on. Defaults to 3001.
+#
+# -u username, --username username:
+#   Specifies the username that the client will have to provide in order
+#   to be allowed to connect. Defaults to "tailfeather".
+#
+# -p password, --password password:
+#   Specifies the password that the client will have to provide in order
+#   to be allowed to connect. Defaults to "shakeit".
+#
+# -q, --quiet:
+#   Supresses most of the output.
+#
+# -v, --verbose:
+#   Prints out more info than usual.
+#
+require 'rubygems'
+require 'getoptlong'
+require 'rdoc/usage'
+require 'eventmachine'
+require 'em-websocket'
+require 'eventmachine-tail'
+require 'json'
+
+
+###############################################################################
+# Configuration
+###############################################################################
+DEFAULT_HOST     = "0.0.0.0"
+DEFAULT_PORT     = 3001
+DEFAULT_USERNAME = "tailfeather"
+DEFAULT_PASSWORD = "shakeit"
+
+
+###############################################################################
+# Helper Methods
+###############################################################################
+def error(str)
+  puts
+  puts "ERROR: #{str}"
+  puts
+  exit -1
+end
+
+def log(*args)
+  puts(*args) unless @quiet
+end
+
+def log_verbose(*args)
+  puts(*args) if @verbose
+end
+
+def run_server(options = {})
+  defaults = {
+    :host      => DEFAULT_HOST,
+    :port      => DEFAULT_PORT,
+    :filenames => nil,
+  }
+
+  opts = defaults.merge(options)
+
+  EventMachine.run do
+    channel = EventMachine::Channel.new
+
+    opts[:filenames].each do |filename|
+      log("Watching #{filename}")
+      EventMachine::file_tail(filename) do |tailer, line|
+        output = nil
+        if opts[:filenames].length > 1
+          output = "[#{File.basename(filename)}] #{line}"
+        else
+          output = line
+        end
+
+        channel.push(output) if output
+      end
+    end
+
+    log("Listening for clients on #{opts[:host]}:#{opts[:port]}")
+    EventMachine::WebSocket.start(
+      :host => opts[:host],
+      :port => opts[:port]
+    ) do |ws|
+
+      ws.onopen do
+        subscription = nil
+        log("Client connected")
+
+        ws.onclose do
+          channel.unsubscribe(subscription) if subscription
+          log("Client disconnected")
+        end
+
+        ws.onmessage do |msg|
+          log("login: #{msg}")
+          creds = JSON.parse(msg)
+          if (creds                                  &&
+              (creds['username'] == opts[:username]) &&
+              (creds['password'] == opts[:password]))
+            subscription = channel.subscribe do |msg|
+              ws.send(msg)
+            end
+          else
+            log("********** INVALID LOGIN **********")
+            ws.send("********** INVALID LOGIN **********")
+            ws.close_connection
+          end
+        end
+      end
+
+    end
+  end
+end
+
+
+###############################################################################
+# Main Program
+###############################################################################
+
+# Set default options.
+options = {
+  :host      => DEFAULT_HOST,
+  :port      => DEFAULT_PORT,
+  :username  => DEFAULT_USERNAME,
+  :password  => DEFAULT_PASSWORD,
+  :filenames => nil
+}
+
+# Get command line options.
+GetoptLong.new(
+  ['--help',     '-h', GetoptLong::NO_ARGUMENT],
+  ['--host',           GetoptLong::REQUIRED_ARGUMENT],
+  ['--port',           GetoptLong::REQUIRED_ARGUMENT],
+  ['--username', '-u', GetoptLong::REQUIRED_ARGUMENT],
+  ['--password', '-p', GetoptLong::REQUIRED_ARGUMENT],
+  ['--quiet',    '-q', GetoptLong::NO_ARGUMENT],
+  ['--verbose',  '-b', GetoptLong::NO_ARGUMENT]
+).each do |opt, arg|
+  case opt
+  when '--help'
+    RDoc::usage
+  when '--host'
+    options[:host] = arg
+  when '--port'
+    options[:port] = arg.to_i
+  when '--username'
+    options[:username] = arg
+  when '--password'
+    options[:password] = arg
+  when '--quiet'
+    @quiet   = true
+    @verbose = false
+  when '--verbose'
+    @verbose = true
+    @quiet   = false
+  end
+end
+
+error("ERROR: No log files specified") if ARGV.empty?
+options[:filenames] = ARGV
+
+run_server(options)

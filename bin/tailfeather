@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+# REVISIT: This script is just for convenience. It need to be turned into
+#          a real tool that can start/stop daemons, pass parameters, show
+#          help, etc.
+
+app_server = File.expand_path(
+  'tailfeather-app-server',
+  File.dirname(__FILE__)
+)
+
+stream_server = File.expand_path(
+  'tailfeather-stream-server',
+  File.dirname(__FILE__)
+)
+
+system "#{stream_server} #{ARGV.join(' ')} --port 8201 &"
+system "#{app_server} -p 8200 &"

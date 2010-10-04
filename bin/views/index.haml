@@ -1,0 +1,42 @@
+%html
+  %head
+    %title Tailfeather
+    %link{:rel => "stylesheet", :type => "text/css", :href => "stylesheet.css"}
+    %script{:src => "http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"}
+    %script{:src => "tailfeather.js", :type => "text/javascript"}
+  %body
+    %h1 Tailfeather
+    %label
+      Username:
+      %input{:type => "text", :id => "username"}
+    %label
+      Password:
+      %input{:type => "password", :id => "password"}
+    %br
+    %button#connect Connect
+    %button#clear Clear
+    %button#disconnect{:disabled => true} Disconnect
+    %hr
+    %pre{:id => 'out'}
+
+    :javascript
+      $('#connect').click(function() {
+        Tailfeather.connect(
+          '#{stream_url}',
+          $('#out'),
+          $('#username').attr('value'),
+          $('#password').attr('value')
+        );
+        $(this).attr('disabled', true);
+        $('#disconnect').removeAttr('disabled');	
+      });
+
+      $('#clear').click(function() {
+        $('#out').html('');
+      });
+
+      $('#disconnect').click(function() {
+        Tailfeather.disconnect();
+        $(this).attr('disabled', 'true');
+        $('#connect').removeAttr('disabled');
+      });
