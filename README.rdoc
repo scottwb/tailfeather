@@ -13,6 +13,7 @@ This project is pretty bare-bones. Below is a list of features that I intend to 
 * Should take a param for the base port.
 * Should take a param for the log dir.
 * Nice to have: reads configs from a config file.
+* Combine all the scripts into one.
 
 === tailfeather-stream-server:
 * Ability to configure ports via the command line.
